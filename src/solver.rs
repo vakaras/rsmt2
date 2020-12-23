@@ -1879,4 +1879,19 @@ impl<Parser> Solver<Parser> {
         }
         Ok(())
     }
+
+    // |===| Labels.
+
+    /// Labels command.
+    #[inline]
+    pub fn labels<Ident, Type>(&mut self) -> SmtRes<Vec<Ident>>
+    where
+        Parser: for<'a> IdentParser<Ident, Type, &'a mut RSmtParser>
+    {
+        tee_write! {
+            self, |w| write_str(w, "(labels)\n") ?
+        }
+        self.smt_parser.labels(self.parser)
+    }
+
 }

@@ -1379,6 +1379,26 @@ impl<R: BufRead> SmtParser<R> {
         self.clear();
         Ok(values)
     }
+
+    /// Parses the result of a labels.
+    pub fn labels<Ident, Type, Parser>(
+        &mut self,
+        parser: Parser,
+    ) -> SmtRes<Vec<Ident>>
+    where
+        Parser: for<'a> IdentParser<Ident, Type, &'a mut Self>
+    {
+        self.spc_cmt();
+        self.try_error()?;
+        let mut labels = Vec::new();
+        self.tags(&["(", "labels"])?;
+        while !self.try_tag(")")? {
+            let id = parser.parse_ident(self)?;
+            labels.push(id);
+        }
+        self.clear();
+        Ok(labels)
+    }
 }
 
 /// Can parse identifiers and types. Used for `get_model`.
