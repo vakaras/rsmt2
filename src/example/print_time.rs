@@ -33,8 +33,8 @@ impl Type {
         }
     }
 }
-impl Sort2Smt for Type {
-    fn sort_to_smt2<Writer: Write>(&self, writer: &mut Writer) -> SmtRes<()> {
+impl<T> Sort2Smt<T> for Type {
+    fn sort_to_smt2<Writer: Write>(&self, writer: &mut Writer, _: T) -> SmtRes<()> {
         writer.write_all(self.to_str().as_bytes())?;
         Ok(())
     }

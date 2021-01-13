@@ -494,7 +494,7 @@ impl<Parser> Solver<Parser> {
     pub fn declare_const<Sym, Sort>(&mut self, symbol: &Sym, out_sort: &Sort) -> SmtRes<()>
     where
         Sym: ?Sized + Sym2Smt<()>,
-        Sort: ?Sized + Sort2Smt,
+        Sort: ?Sized + Sort2Smt<()>,
     {
         self.declare_const_with(symbol, out_sort, ())
     }
@@ -517,8 +517,8 @@ impl<Parser> Solver<Parser> {
     ) -> SmtRes<()>
     where
         FunSym: ?Sized + Sym2Smt<()>,
-        ArgSort: ?Sized + Sort2Smt + 'a,
-        OutSort: ?Sized + Sort2Smt,
+        ArgSort: ?Sized + Sort2Smt<()> + 'a,
+        OutSort: ?Sized + Sort2Smt<()>,
         Args: IntoIterator<Item = &'a ArgSort>,
     {
         self.declare_fun_with(symbol, args, out, ())
@@ -543,7 +543,7 @@ impl<Parser> Solver<Parser> {
         body: &Body,
     ) -> SmtRes<()>
     where
-        OutSort: ?Sized + Sort2Smt,
+        OutSort: ?Sized + Sort2Smt<()>,
         FunSym: ?Sized + Sym2Smt<()>,
         Body: ?Sized + Expr2Smt<()>,
     {
@@ -570,8 +570,8 @@ impl<Parser> Solver<Parser> {
         body: &Body,
     ) -> SmtRes<()>
     where
-        ArgSort: Sort2Smt + 'a,
-        OutSort: ?Sized + Sort2Smt,
+        ArgSort: Sort2Smt<()> + 'a,
+        OutSort: ?Sized + Sort2Smt<()>,
         FunSym: ?Sized + Sym2Smt<()>,
         ArgSym: Sym2Smt<()> + 'a,
         Body: ?Sized + Expr2Smt<()>,
@@ -710,8 +710,8 @@ impl<Parser> Solver<Parser> {
         body: &Body,
     ) -> SmtRes<()>
     where
-        ArgSort: Sort2Smt + 'a,
-        OutSort: ?Sized + Sort2Smt,
+        ArgSort: Sort2Smt<()> + 'a,
+        OutSort: ?Sized + Sort2Smt<()>,
         FunSym: ?Sized + Sym2Smt<()>,
         ArgSym: Sym2Smt<()> + 'a,
         Body: ?Sized + Expr2Smt<()>,
@@ -741,8 +741,8 @@ impl<Parser> Solver<Parser> {
     where
         FunSym: Sym2Smt<()> + 'a,
         ArgSym: Sym2Smt<()> + 'a,
-        ArgSort: Sort2Smt + 'a,
-        OutSort: Sort2Smt + 'a,
+        ArgSort: Sort2Smt<()> + 'a,
+        OutSort: Sort2Smt<()> + 'a,
         Body: Expr2Smt<()> + 'a,
         &'a Args: IntoIterator<Item = &'a (ArgSym, ArgSort)> + 'a,
         Args: ?Sized,
@@ -784,12 +784,12 @@ impl<Parser> Solver<Parser> {
         defs: All,
     ) -> SmtRes<()>
     where
-        Sort: Sort2Smt + 'a,
+        Sort: Sort2Smt<()> + 'a,
 
-        Param: Sort2Smt + 'a,
+        Param: Sort2Smt<()> + 'a,
         &'a ParamList: IntoIterator<Item = &'a Param> + 'a,
 
-        Def: Sort2Smt + 'a,
+        Def: Sort2Smt<()> + 'a,
         &'a DefList: IntoIterator<Item = &'a Def> + 'a,
         All: IntoIterator<Item = &'a (Sort, usize, ParamList, DefList)> + 'a,
         All::IntoIter: Clone,
@@ -804,7 +804,7 @@ impl<Parser> Solver<Parser> {
             tee_write! {
               self, |w| {
                 write!(w, " (")?;
-                sort.sort_to_smt2(w)?;
+                sort.sort_to_smt2(w, ())?;
                 write!(w, " {})", arity) ?
               }
             }
@@ -823,7 +823,7 @@ impl<Parser> Solver<Parser> {
                   write!(w, "par (")?;
                   for param in params {
                     write!(w, " ")?;
-                    param.sort_to_smt2(w)?;
+                    param.sort_to_smt2(w, ())?;
                   }
                   write!(w, " ) (") ?
                 }
@@ -834,7 +834,7 @@ impl<Parser> Solver<Parser> {
                 tee_write! {
                   self, |w| {
                     write!(w, " ")?;
-                    def.sort_to_smt2(w) ?
+                    def.sort_to_smt2(w, ()) ?
                   }
                 }
             }
@@ -1307,7 +1307,7 @@ impl<Parser> Solver<Parser> {
 
 /// # Sort-related SMT-LIB commands.
 impl<Parser> Solver<Parser> {
-    /// Declares a new sort.
+    /// Declares a new sort with unit info.
     ///
     /// # Examples
     ///
@@ -1326,12 +1326,22 @@ impl<Parser> Solver<Parser> {
     #[inline]
     pub fn declare_sort<Sort>(&mut self, sort: &Sort, arity: u8) -> SmtRes<()>
     where
-        Sort: ?Sized + Sort2Smt,
+        Sort: ?Sized + Sort2Smt<()>,
+    {
+        self.declare_sort_with(sort, arity, ())
+    }
+
+    /// Declares a new sort.
+    #[inline]
+    pub fn declare_sort_with<Info, Sort>(&mut self, sort: &Sort, arity: u8, info: Info) -> SmtRes<()>
+    where
+        Info: Copy,
+        Sort: ?Sized + Sort2Smt<Info>,
     {
         tee_write! {
           self, |w| {
             write_str(w, "(declare-sort ")?;
-            sort.sort_to_smt2(w)?;
+            sort.sort_to_smt2(w, info)?;
             writeln!(w, " {})", arity) ?
           }
         }
@@ -1375,22 +1385,22 @@ impl<Parser> Solver<Parser> {
         body: &Body,
     ) -> SmtRes<()>
     where
-        Sort: ?Sized + Sort2Smt,
-        Arg: ?Sized + Sort2Smt + 'a,
-        Body: ?Sized + Sort2Smt,
+        Sort: ?Sized + Sort2Smt<()>,
+        Arg: ?Sized + Sort2Smt<()> + 'a,
+        Body: ?Sized + Sort2Smt<()>,
         Args: IntoIterator<Item = &'a Arg>,
     {
         tee_write! {
           self, |w| {
             write_str(w, "( define-sort ")?;
-            sort.sort_to_smt2(w)?;
+            sort.sort_to_smt2(w, ())?;
             write_str(w, "\n   ( ")?;
           }
         }
         for arg in args {
             tee_write! {
               self, |w| {
-                arg.sort_to_smt2(w)?;
+                arg.sort_to_smt2(w, ())?;
                 write_str(w, " ") ?
               }
             }
@@ -1398,7 +1408,7 @@ impl<Parser> Solver<Parser> {
         tee_write! {
           self, |w| {
             write_str(w, ")\n   ")?;
-            body.sort_to_smt2(w)?;
+            body.sort_to_smt2(w, ())?;
             write_str(w, "\n)\n") ?
           }
         }
@@ -1418,8 +1428,8 @@ impl<Parser> Solver<Parser> {
     #[inline]
     pub fn define_null_sort<Sort, Body>(&mut self, sort: &Sort, body: &Body) -> SmtRes<()>
     where
-        Sort: ?Sized + Sort2Smt,
-        Body: ?Sized + Sort2Smt,
+        Sort: ?Sized + Sort2Smt<()>,
+        Body: ?Sized + Sort2Smt<()>,
     {
         self.define_sort::<Sort, Body, Option<&Body>, Body>(sort, None, body)
     }
@@ -1438,14 +1448,14 @@ impl<Parser> Solver<Parser> {
     where
         Info: Copy,
         Sym: ?Sized + Sym2Smt<Info>,
-        Sort: ?Sized + Sort2Smt,
+        Sort: ?Sized + Sort2Smt<()>,
     {
         tee_write! {
           self, |w| {
             write_str(w, "(declare-const ")?;
             symbol.sym_to_smt2(w, info)?;
             write_str(w, " ")?;
-            out_sort.sort_to_smt2(w)?;
+            out_sort.sort_to_smt2(w, ())?;
             write_str(w, ")\n") ?
           }
         }
@@ -1464,8 +1474,8 @@ impl<Parser> Solver<Parser> {
     where
         Info: Copy,
         FunSym: ?Sized + Sym2Smt<Info>,
-        ArgSort: ?Sized + Sort2Smt + 'a,
-        OutSort: ?Sized + Sort2Smt,
+        ArgSort: ?Sized + Sort2Smt<Info> + 'a,
+        OutSort: ?Sized + Sort2Smt<Info>,
         Args: IntoIterator<Item = &'a ArgSort>,
     {
         tee_write! {
@@ -1478,7 +1488,7 @@ impl<Parser> Solver<Parser> {
         for arg in args {
             tee_write! {
               self, |w| {
-                arg.sort_to_smt2(w)?;
+                arg.sort_to_smt2(w, info)?;
                 write_str(w, " ") ?
               }
             }
@@ -1486,7 +1496,7 @@ impl<Parser> Solver<Parser> {
         tee_write! {
           self, |w| {
             write_str(w, ") ")?;
-            out.sort_to_smt2(w)?;
+            out.sort_to_smt2(w, info)?;
             write_str(w, ")\n") ?
           }
         }
@@ -1505,7 +1515,7 @@ impl<Parser> Solver<Parser> {
     where
         Info: Copy,
         Sym: ?Sized + Sym2Smt<Info>,
-        Sort: ?Sized + Sort2Smt,
+        Sort: ?Sized + Sort2Smt<Info>,
         Body: ?Sized + Expr2Smt<Info>,
     {
         tee_write! {
@@ -1513,7 +1523,7 @@ impl<Parser> Solver<Parser> {
             write_str(w, "(define-const ")?;
             symbol.sym_to_smt2(w, info)?;
             write_str(w, " ")?;
-            out_sort.sort_to_smt2(w)?;
+            out_sort.sort_to_smt2(w, info)?;
             write_str(w, " ")?;
             body.expr_to_smt2(w, info)?;
             write_str(w, ")\n") ?
@@ -1534,8 +1544,8 @@ impl<Parser> Solver<Parser> {
     ) -> SmtRes<()>
     where
         Info: Copy,
-        ArgSort: Sort2Smt + 'a,
-        OutSort: ?Sized + Sort2Smt,
+        ArgSort: Sort2Smt<Info> + 'a,
+        OutSort: ?Sized + Sort2Smt<Info>,
         FunSym: ?Sized + Sym2Smt<Info>,
         ArgSym: Sym2Smt<Info> + 'a,
         Body: ?Sized + Expr2Smt<Info>,
@@ -1555,7 +1565,7 @@ impl<Parser> Solver<Parser> {
                 write_str(w, "(")?;
                 sym.sym_to_smt2(w, info)?;
                 write_str(w, " ")?;
-                sort.sort_to_smt2(w)?;
+                sort.sort_to_smt2(w, info)?;
                 write_str(w, ") ") ?
               }
             }
@@ -1563,7 +1573,7 @@ impl<Parser> Solver<Parser> {
         tee_write! {
           self, |w| {
             write_str(w, ") ")?;
-            out.sort_to_smt2(w)?;
+            out.sort_to_smt2(w, info)?;
             write_str(w, "\n   ")?;
             body.expr_to_smt2(w, info)?;
             write_str(w, "\n)\n") ?
@@ -1594,8 +1604,8 @@ impl<Parser> Solver<Parser> {
         Info: Copy,
         FunSym: Sym2Smt<Info> + 'a,
         ArgSym: Sym2Smt<Info> + 'a,
-        ArgSort: Sort2Smt + 'a,
-        OutSort: Sort2Smt + 'a,
+        ArgSort: Sort2Smt<Info> + 'a,
+        OutSort: Sort2Smt<Info> + 'a,
         Body: Expr2Smt<Info> + 'a,
         &'a Args: IntoIterator<Item = &'a (ArgSym, ArgSort)> + 'a,
         Args: ?Sized,
@@ -1629,7 +1639,7 @@ impl<Parser> Solver<Parser> {
                     write_str(w, "(")?;
                     sym.sym_to_smt2(w, info)?;
                     write_str(w, " ")?;
-                    sort.sort_to_smt2(w)?;
+                    sort.sort_to_smt2(w, info)?;
                     write_str(w, ") ") ?
                   }
                 }
@@ -1638,7 +1648,7 @@ impl<Parser> Solver<Parser> {
             tee_write! {
               self, |w| {
                 write_str(w, ") ")?;
-                out.sort_to_smt2(w)?;
+                out.sort_to_smt2(w, info)?;
                 write_str(w, ")\n") ?
               }
             }
@@ -1675,8 +1685,8 @@ impl<Parser> Solver<Parser> {
     ) -> SmtRes<()>
     where
         Info: Copy,
-        ArgSort: Sort2Smt + 'a,
-        OutSort: ?Sized + Sort2Smt,
+        ArgSort: Sort2Smt<Info> + 'a,
+        OutSort: ?Sized + Sort2Smt<Info>,
         FunSym: ?Sized + Sym2Smt<Info>,
         ArgSym: Sym2Smt<Info> + 'a,
         Body: ?Sized + Expr2Smt<Info>,
@@ -1703,7 +1713,7 @@ impl<Parser> Solver<Parser> {
                 write_str(w, "(")?;
                 sym.sym_to_smt2(w, info)?;
                 write_str(w, " ")?;
-                sort.sort_to_smt2(w)?;
+                sort.sort_to_smt2(w, info)?;
                 write_str(w, ") ") ?
               }
             }
@@ -1712,7 +1722,7 @@ impl<Parser> Solver<Parser> {
         tee_write! {
           self, |w| {
             write_str(w, ") ")?;
-            out.sort_to_smt2(w)?;
+            out.sort_to_smt2(w, info)?;
             write_str(w, ")\n")?;
             write_str(w, " ) (")?;
 

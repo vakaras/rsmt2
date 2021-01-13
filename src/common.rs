@@ -23,10 +23,10 @@ pub trait Expr2Smt<Info> {
         Writer: io::Write;
 }
 
-/// A sort printable in the SMT Lib 2 standard.
-pub trait Sort2Smt {
+/// A sort printable in the SMT Lib 2 standard given some info.
+pub trait Sort2Smt<Info> {
     /// Prints a sort to a writer info.
-    fn sort_to_smt2<Writer>(&self, w: &mut Writer) -> SmtRes<()>
+    fn sort_to_smt2<Writer>(&self, w: &mut Writer, i: Info) -> SmtRes<()>
     where
         Writer: io::Write;
 }
@@ -62,15 +62,15 @@ where
     }
 }
 
-impl<'a, T> Sort2Smt for &'a T
+impl<'a, T, Info> Sort2Smt<Info> for &'a T
 where
-    T: Sort2Smt + ?Sized,
+    T: Sort2Smt<Info> + ?Sized,
 {
-    fn sort_to_smt2<Writer>(&self, writer: &mut Writer) -> SmtRes<()>
+    fn sort_to_smt2<Writer>(&self, writer: &mut Writer, info: Info) -> SmtRes<()>
     where
         Writer: io::Write,
     {
-        (*self).sort_to_smt2(writer)
+        (*self).sort_to_smt2(writer, info)
     }
 }
 
@@ -90,8 +90,8 @@ impl<T> Expr2Smt<T> for str {
         write_str(writer, self)
     }
 }
-impl Sort2Smt for str {
-    fn sort_to_smt2<Writer>(&self, writer: &mut Writer) -> SmtRes<()>
+impl<T> Sort2Smt<T> for str {
+    fn sort_to_smt2<Writer>(&self, writer: &mut Writer, _: T) -> SmtRes<()>
     where
         Writer: io::Write,
     {
@@ -115,8 +115,8 @@ impl<T> Expr2Smt<T> for String {
         write_str(writer, self)
     }
 }
-impl Sort2Smt for String {
-    fn sort_to_smt2<Writer>(&self, writer: &mut Writer) -> SmtRes<()>
+impl<T> Sort2Smt<T> for String {
+    fn sort_to_smt2<Writer>(&self, writer: &mut Writer, _: T) -> SmtRes<()>
     where
         Writer: io::Write,
     {
