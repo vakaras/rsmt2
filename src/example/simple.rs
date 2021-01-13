@@ -438,11 +438,11 @@ impl Expr2Smt<()> for Expr {
 /// Empty parser structure, we will not maintain any context.
 #[derive(Clone, Copy)]
 pub struct Parser;
-impl<'a> IdentParser<String, String, &'a str> for Parser {
-    fn parse_ident(self, input: &'a str) -> SmtRes<String> {
+impl<'a> IdentParser<String, String, (), &'a str> for Parser {
+    fn parse_ident(self, input: &'a str, _info: ()) -> SmtRes<String> {
         Ok(input.to_string())
     }
-    fn parse_type(self, input: &'a str) -> SmtRes<String> {
+    fn parse_type(self, input: &'a str, _info: ()) -> SmtRes<String> {
         match input {
             "Int" => Ok("Int".into()),
             "Bool" => Ok("Bool".into()),

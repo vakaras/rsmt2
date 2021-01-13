@@ -863,21 +863,41 @@ impl<Parser> Solver<Parser> {
     /// Get-model command.
     pub fn get_model<Ident, Type, Value>(&mut self) -> SmtRes<Model<Ident, Type, Value>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut RSmtParser>
+        Parser: for<'a> IdentParser<Ident, Type, (), &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
     {
+        self.get_model_with(())
+    }
+
+    /// Get-model command.
+    pub fn get_model_with<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Model<Ident, Type, Value>>
+    where
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
+            + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
+        Info: Copy,
+    {
         self.print_get_model()?;
-        self.parse_get_model()
+        self.parse_get_model(info)
     }
 
     /// Get-model command when all the symbols are nullary.
     pub fn get_model_const<Ident, Type, Value>(&mut self) -> SmtRes<Vec<(Ident, Type, Value)>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut RSmtParser>
+        Parser: for<'a> IdentParser<Ident, Type, (), &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
     {
+        self.get_model_const_with(())
+    }
+
+    /// Get-model command when all the symbols are nullary.
+    pub fn get_model_const_with<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Vec<(Ident, Type, Value)>>
+    where
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
+            + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
+        Info: Copy,
+    {
         self.print_get_model()?;
-        self.parse_get_model_const()
+        self.parse_get_model_const(info)
     }
 
     /// Get-values command.
@@ -1226,13 +1246,14 @@ impl<Parser> Solver<Parser> {
     }
 
     /// Parse the result of a get-model.
-    fn parse_get_model<Ident, Type, Value>(&mut self) -> SmtRes<Model<Ident, Type, Value>>
+    fn parse_get_model<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Model<Ident, Type, Value>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut RSmtParser>
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
+        Info: Copy,
     {
         let has_actlits = self.has_actlits();
-        let res = self.smt_parser.get_model(has_actlits, self.parser);
+        let res = self.smt_parser.get_model(has_actlits, self.parser, info);
         if res.is_err() && !self.conf.get_models() {
             res.chain_err(|| {
                 "\
@@ -1246,13 +1267,14 @@ impl<Parser> Solver<Parser> {
     }
 
     /// Parse the result of a get-model where all the symbols are nullary.
-    fn parse_get_model_const<Ident, Type, Value>(&mut self) -> SmtRes<Vec<(Ident, Type, Value)>>
+    fn parse_get_model_const<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Vec<(Ident, Type, Value)>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut RSmtParser>
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
+        Info: Copy
     {
         let has_actlits = self.has_actlits();
-        let res = self.smt_parser.get_model_const(has_actlits, self.parser);
+        let res = self.smt_parser.get_model_const(has_actlits, self.parser, info);
         if res.is_err() && !self.conf.get_models() {
             res.chain_err(|| {
                 "\
@@ -1894,14 +1916,15 @@ impl<Parser> Solver<Parser> {
 
     /// Labels command.
     #[inline]
-    pub fn labels<Ident, Type>(&mut self) -> SmtRes<Vec<Ident>>
+    pub fn labels<Ident, Type, Info>(&mut self, info: Info) -> SmtRes<Vec<Ident>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut RSmtParser>
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>,
+        Info: Copy,
     {
         tee_write! {
             self, |w| write_str(w, "(labels)\n") ?
         }
-        self.smt_parser.labels(self.parser)
+        self.smt_parser.labels(self.parser, info)
     }
 
 }

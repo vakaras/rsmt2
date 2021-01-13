@@ -19,11 +19,11 @@ impl<'a> ExprParser<Expr, (), &'a str> for Parser {
         Ok(input.into())
     }
 }
-impl<'a> IdentParser<Ident, Typ, &'a str> for Parser {
-    fn parse_ident(self, input: &'a str) -> SmtRes<Ident> {
+impl<'a> IdentParser<Ident, Typ, (), &'a str> for Parser {
+    fn parse_ident(self, input: &'a str, _: ()) -> SmtRes<Ident> {
         Ok(input.into())
     }
-    fn parse_type(self, input: &'a str) -> SmtRes<Typ> {
+    fn parse_type(self, input: &'a str, _: ()) -> SmtRes<Typ> {
         Ok(input.into())
     }
 }

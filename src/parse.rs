@@ -1273,14 +1273,16 @@ impl<R: BufRead> SmtParser<R> {
     }
 
     /// Parses the result of a get-model where all symbols are nullary.
-    pub fn get_model_const<Ident, Value, Type, Parser>(
+    pub fn get_model_const<Ident, Value, Type, Parser, Info>(
         &mut self,
         prune_actlits: bool,
         parser: Parser,
+        info: Info,
     ) -> SmtRes<Vec<(Ident, Type, Value)>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut Self>
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut Self>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut Self>,
+        Info: Copy
     {
         self.spc_cmt();
         self.try_error()?;
@@ -1295,9 +1297,9 @@ impl<R: BufRead> SmtParser<R> {
                 self.tag("Bool")?;
                 self.bool()?;
             } else {
-                let id = parser.parse_ident(self)?;
+                let id = parser.parse_ident(self, info)?;
                 self.tags(&["(", ")"])?;
-                let typ = parser.parse_type(self)?;
+                let typ = parser.parse_type(self, info)?;
                 let value = parser.parse_value(self, &id, &[], &typ)?;
                 model.push((id, typ, value));
             }
@@ -1308,14 +1310,16 @@ impl<R: BufRead> SmtParser<R> {
     }
 
     /// Parses the result of a get-model.
-    pub fn get_model<Ident, Value, Type, Parser>(
+    pub fn get_model<Ident, Value, Type, Parser, Info>(
         &mut self,
         prune_actlits: bool,
         parser: Parser,
+        info: Info,
     ) -> SmtRes<Model<Ident, Type, Value>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut Self>
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut Self>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut Self>,
+        Info: Copy
     {
         self.spc_cmt();
         self.try_error()?;
@@ -1330,21 +1334,21 @@ impl<R: BufRead> SmtParser<R> {
                 self.tag("Bool")?;
                 self.bool()?;
             } else {
-                let id = parser.parse_ident(self)?;
+                let id = parser.parse_ident(self, info)?;
                 self.tag("(")?;
                 let mut args = Vec::new();
                 while self.try_tag("(")? {
                     self.spc_cmt();
-                    let id = parser.parse_ident(self)?;
+                    let id = parser.parse_ident(self, info)?;
                     self.spc_cmt();
-                    let typ = parser.parse_type(self)?;
+                    let typ = parser.parse_type(self, info)?;
                     self.spc_cmt();
                     self.tag(")")?;
                     args.push((id, typ))
                 }
                 self.tag(")")?;
                 self.spc_cmt();
-                let typ = parser.parse_type(self)?;
+                let typ = parser.parse_type(self, info)?;
                 self.spc_cmt();
                 let value = parser.parse_value(self, &id, &args, &typ)?;
                 model.push((id, args, typ, value));
@@ -1381,19 +1385,21 @@ impl<R: BufRead> SmtParser<R> {
     }
 
     /// Parses the result of a labels.
-    pub fn labels<Ident, Type, Parser>(
+    pub fn labels<Ident, Type, Parser, Info>(
         &mut self,
         parser: Parser,
+        info: Info,
     ) -> SmtRes<Vec<Ident>>
     where
-        Parser: for<'a> IdentParser<Ident, Type, &'a mut Self>
+        Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut Self>,
+        Info: Copy
     {
         self.spc_cmt();
         self.try_error()?;
         let mut labels = Vec::new();
         self.tags(&["(", "labels"])?;
         while !self.try_tag(")")? {
-            let id = parser.parse_ident(self)?;
+            let id = parser.parse_ident(self, info)?;
             labels.push(id);
         }
         self.clear();
@@ -1406,33 +1412,33 @@ impl<R: BufRead> SmtParser<R> {
 /// For more information refer to the [module-level documentation].
 ///
 /// [module-level documentation]: index.html
-pub trait IdentParser<Ident, Type, Input>: Copy {
+pub trait IdentParser<Ident, Type, Info, Input>: Copy {
     /// Parses an identifier.
-    fn parse_ident(self, i: Input) -> SmtRes<Ident>;
+    fn parse_ident(self, i: Input, info: Info) -> SmtRes<Ident>;
     /// Parses a type.
-    fn parse_type(self, i: Input) -> SmtRes<Type>;
+    fn parse_type(self, i: Input, info: Info) -> SmtRes<Type>;
 }
-impl<'a, Ident, Type, T> IdentParser<Ident, Type, &'a str> for T
+impl<'a, Ident, Type, Info, T> IdentParser<Ident, Type, Info, &'a str> for T
 where
-    T: IdentParser<Ident, Type, &'a [u8]>,
+    T: IdentParser<Ident, Type, Info, &'a [u8]>,
 {
-    fn parse_ident(self, input: &'a str) -> SmtRes<Ident> {
-        self.parse_ident(input.as_bytes())
+    fn parse_ident(self, input: &'a str, info: Info) -> SmtRes<Ident> {
+        self.parse_ident(input.as_bytes(), info)
     }
-    fn parse_type(self, input: &'a str) -> SmtRes<Type> {
-        self.parse_type(input.as_bytes())
+    fn parse_type(self, input: &'a str, info: Info) -> SmtRes<Type> {
+        self.parse_type(input.as_bytes(), info)
     }
 }
-impl<'a, Ident, Type, T, Br> IdentParser<Ident, Type, &'a mut SmtParser<Br>> for T
+impl<'a, Ident, Type, Info, T, Br> IdentParser<Ident, Type, Info, &'a mut SmtParser<Br>> for T
 where
-    T: IdentParser<Ident, Type, &'a str>,
+    T: IdentParser<Ident, Type, Info, &'a str>,
     Br: BufRead,
 {
-    fn parse_ident(self, input: &'a mut SmtParser<Br>) -> SmtRes<Ident> {
-        self.parse_ident(input.get_sexpr()?)
+    fn parse_ident(self, input: &'a mut SmtParser<Br>, info: Info) -> SmtRes<Ident> {
+        self.parse_ident(input.get_sexpr()?, info)
     }
-    fn parse_type(self, input: &'a mut SmtParser<Br>) -> SmtRes<Type> {
-        self.parse_type(input.get_sexpr()?)
+    fn parse_type(self, input: &'a mut SmtParser<Br>, info: Info) -> SmtRes<Type> {
+        self.parse_type(input.get_sexpr()?, info)
     }
 }
 

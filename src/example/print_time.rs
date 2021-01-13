@@ -224,8 +224,8 @@ impl<'a, 'b> Expr2Smt<()> for Unrolled<'a, &'b SExpr> {
 #[derive(Clone, Copy)]
 pub struct Parser;
 
-impl<'a> IdentParser<(Var, Option<usize>), Type, &'a str> for Parser {
-    fn parse_ident(self, s: &'a str) -> SmtRes<(Var, Option<usize>)> {
+impl<'a> IdentParser<(Var, Option<usize>), Type, (), &'a str> for Parser {
+    fn parse_ident(self, s: &'a str, _info: ()) -> SmtRes<(Var, Option<usize>)> {
         if s.len() <= 2 {
             bail!("not one of my idents...")
         }
@@ -249,7 +249,7 @@ impl<'a> IdentParser<(Var, Option<usize>), Type, &'a str> for Parser {
             Ok((Var::NSVar(id), None))
         }
     }
-    fn parse_type(self, s: &'a str) -> SmtRes<Type> {
+    fn parse_type(self, s: &'a str, _info: ()) -> SmtRes<Type> {
         match s {
             "Int" => Ok(Type::Int),
             "Bool" => Ok(Type::Bool),
