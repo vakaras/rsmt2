@@ -1282,7 +1282,7 @@ impl<R: BufRead> SmtParser<R> {
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut Self>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut Self>,
-        Info: Copy
+        Info: Copy,
     {
         self.spc_cmt();
         self.try_error()?;
@@ -1319,7 +1319,7 @@ impl<R: BufRead> SmtParser<R> {
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut Self>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut Self>,
-        Info: Copy
+        Info: Copy,
     {
         self.spc_cmt();
         self.try_error()?;
@@ -1392,7 +1392,7 @@ impl<R: BufRead> SmtParser<R> {
     ) -> SmtRes<Vec<Ident>>
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut Self>,
-        Info: Copy
+        Info: Copy,
     {
         self.spc_cmt();
         self.try_error()?;

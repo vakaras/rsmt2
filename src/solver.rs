@@ -870,7 +870,10 @@ impl<Parser> Solver<Parser> {
     }
 
     /// Get-model command.
-    pub fn get_model_with<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Model<Ident, Type, Value>>
+    pub fn get_model_with<Ident, Type, Value, Info>(
+        &mut self,
+        info: Info,
+    ) -> SmtRes<Model<Ident, Type, Value>>
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
@@ -890,7 +893,10 @@ impl<Parser> Solver<Parser> {
     }
 
     /// Get-model command when all the symbols are nullary.
-    pub fn get_model_const_with<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Vec<(Ident, Type, Value)>>
+    pub fn get_model_const_with<Ident, Type, Value, Info>(
+        &mut self,
+        info: Info,
+    ) -> SmtRes<Vec<(Ident, Type, Value)>>
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
@@ -1246,7 +1252,10 @@ impl<Parser> Solver<Parser> {
     }
 
     /// Parse the result of a get-model.
-    fn parse_get_model<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Model<Ident, Type, Value>>
+    fn parse_get_model<Ident, Type, Value, Info>(
+        &mut self,
+        info: Info,
+    ) -> SmtRes<Model<Ident, Type, Value>>
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
@@ -1267,14 +1276,19 @@ impl<Parser> Solver<Parser> {
     }
 
     /// Parse the result of a get-model where all the symbols are nullary.
-    fn parse_get_model_const<Ident, Type, Value, Info>(&mut self, info: Info) -> SmtRes<Vec<(Ident, Type, Value)>>
+    fn parse_get_model_const<Ident, Type, Value, Info>(
+        &mut self,
+        info: Info,
+    ) -> SmtRes<Vec<(Ident, Type, Value)>>
     where
         Parser: for<'a> IdentParser<Ident, Type, Info, &'a mut RSmtParser>
             + for<'a> ModelParser<Ident, Type, Value, &'a mut RSmtParser>,
-        Info: Copy
+        Info: Copy,
     {
         let has_actlits = self.has_actlits();
-        let res = self.smt_parser.get_model_const(has_actlits, self.parser, info);
+        let res = self
+            .smt_parser
+            .get_model_const(has_actlits, self.parser, info);
         if res.is_err() && !self.conf.get_models() {
             res.chain_err(|| {
                 "\
@@ -1355,7 +1369,12 @@ impl<Parser> Solver<Parser> {
 
     /// Declares a new sort.
     #[inline]
-    pub fn declare_sort_with<Info, Sort>(&mut self, sort: &Sort, arity: u8, info: Info) -> SmtRes<()>
+    pub fn declare_sort_with<Info, Sort>(
+        &mut self,
+        sort: &Sort,
+        arity: u8,
+        info: Info,
+    ) -> SmtRes<()>
     where
         Info: Copy,
         Sort: ?Sized + Sort2Smt<Info>,
@@ -1926,5 +1945,4 @@ impl<Parser> Solver<Parser> {
         }
         self.smt_parser.labels(self.parser, info)
     }
-
 }
